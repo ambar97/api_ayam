@@ -1,7 +1,7 @@
 <?php
 
 if (!defined('BASEPATH'))
-exit('No direct script access allowed');
+  exit('No direct script access allowed');
 
 class M_api extends CI_Model
 {
@@ -31,4 +31,4 @@ class M_api extends CI_Model
     return $this->db->get('penyakit')->result();
   }
 
-  }
+}

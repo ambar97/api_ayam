@@ -21,61 +21,51 @@ class Diagnosa extends REST_Controller {
                 $this->response($data, REST_Controller::HTTP_OK);
             }
         } 
-        else if ($this->get('service')=="hasilDiagnosa") {
-            $row = $this->M_api->get_hasil_diagnosa($this->get('penyakit'));
-            if ($row) {
-                $data = array("data" => $row
-            );
-                $this->response($data, REST_Controller::HTTP_OK);
-            }
-        }
     }
 
     //indexPost
     function index_post(){
-        $jsonPenyakit =json_decode($this->post("data"),true);
+            // $this->response(['hasila'=>"hello"], REST_Controller::HTTP_OK);
+            $jsonCFuser = json_decode($this->post("cf"),true);
+            $id_penyakit = $this->post("id_penyakit");
 
-        $tempAndro = array();
-        $tempDb = array();
-        $penyakit = array();
-        $hasil = array();
-        $data_kosong = array();
-
-        foreach ($jsonPenyakit as $variable => $idPenyakit) {
-            array_push($penyakit, $idPenyakit);
-        }
-
-        $cek_data_sama = array_count_values($penyakit);
-        foreach($cek_data_sama as $x => $x_value) {
-            $rr = array('id_p'=>$x,'jml'=>$x_value);
-            array_push($tempAndro, $rr);
-        } 
-
-        $jumlah_p_from_db = $this->db->get('data_penyakit')->result();
-        foreach ($jumlah_p_from_db as $key) {
-            $hitung = $this->db->get_where('data_aturan',array('id_penyakit'=>$key->id_penyakit))->num_rows();
-            $kirim = array('id_penyakit'=>$key->id_penyakit,'jumlah'=>$hitung);
-            array_push($tempDb, $kirim);
-        }
-        //bandingkanjumlahData
-
-        for ($i=0; $i < count($tempDb) ; $i++) { 
-            for ($j=0; $j < count($tempAndro) ; $j++) { 
-                if ($tempDb[$i]['id_penyakit'] == $tempAndro[$j]['id_p']) {
-                    if ($tempDb[$i]['jumlah'] == $tempAndro[$j]['jml']) {
-                        array_push($hasil, $tempDb[$i]['id_penyakit']);
-                    }
-                    else{
-                        array_push($data_kosong, 1);
-                    }
+            $cfuser = array();
+            $cfpakar = array();
+            $cfhe = array();
+        //ambildatacfuser
+            foreach ($jsonCFuser as $nilai => $cfUserAndro) {
+                array_push($cfuser, $cfUserAndro);
+            }
+        //selectgejalawherepenyakit
+            $gejala = $this->db->get_where('rule',array("id_penyakit"=>$id_penyakit))->result();
+        // ambildatacfpakar
+            foreach ($gejala as $cfpakardb) {
+                array_push($cfpakar, $cfpakardb->bobot_pakar);
+            }
+            //hitung cfhe
+            for ($i=0; $i <count($cfuser) ; $i++) { 
+                $hitungcfhe = $cfuser[$i] * $cfpakar[$i];
+                array_push($cfhe, $hitungcfhe);
+            }
+            //combine
+            $old = 0;
+            for ($i=0; $i <count($cfhe) ; $i++) { 
+                if ($i == 0) {
+                $comb = $cfhe[$i]+$cfhe[$i+1] *(1-$cfhe[$i]);
+                $old = $comb;
+                }
+                else if($i < count($cfhe)) {
+                    $combb = $old+$cfhe[$i] * (1-$old);
+                    $old = $combb;
+                }else{
+                    $combb = $old+$cfhe[$i+1] * (1-$old);
+                    $old = $combb;
                 }
             }
-        }
-        if (count($data_kosong) != count($tempDb)) {
-           $result_data = $this->M_api->getHasil($hasil);   
-       }else{
-        $result_data=array();
+            $kirim = $old*100;
+            $hasil = number_format($kirim,2);
+            $penyakit = $this->db->get_where('penyakit',array('id_penyakit'=>$id_penyakit))->row_array();
+
+            $this->response(['cfpakar'=>$cfpakar, 'cfuser'=>$cfuser, 'cfhe'=>$cfhe,'hasil'=>$hasil,'penyakit'=>$penyakit], REST_Controller::HTTP_OK);
     }
-    $this->response(['hasila'=>$penyakit,'andro'=>$hasil,'temp'=>$tempAndro,'hasil'=>$result_data], REST_Controller::HTTP_OK);
-}
 }
