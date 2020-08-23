@@ -30,5 +30,9 @@ class M_api extends CI_Model
     $this->db->where('penyakit.id_penyakit', $id_penyakit);
     return $this->db->get('penyakit')->result();
   }
+    function hapus_data($table,$where){
+    $this->db->where($where);
+    $this->db->delete($table);
+  }
 
 }
